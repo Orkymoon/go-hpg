@@ -4,7 +4,6 @@ import (
 	"log"
 
 	"github.com/orkymoon/tripay-golang/config"
-	"github.com/orkymoon/tripay-golang/model"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -21,12 +20,10 @@ func ConnectDB() {
 	})
 
 	if err != nil {
-		panic("Database connection failed.")
+		log.Panic("Database connection failed.")
 	}
 
-	log.Println("Connection Successfuly.")
-
-	db.AutoMigrate(new(model.Transaction))
+	log.Println("Connection successfuly.")
 
 	DBConn = db
 }

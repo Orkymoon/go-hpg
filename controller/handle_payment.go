@@ -3,6 +3,7 @@ package controller
 import (
 	"log"
 	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/orkymoon/tripay-golang/config"
@@ -13,22 +14,13 @@ import (
 	"github.com/zakirkun/go-tripay/utils"
 )
 
-type PaymentForm struct {
-	Phone      uint   `form:"phone"`
-	Voucher    string `form:"vc"`
-	Profile    string `form:"profile"`
-	Amount     int    `form:"saldo"`
-	MacAddress string `form:"mac"`
-	Method     string `form:"rek"`
-}
-
 func HandlePayment(c *fiber.Ctx) error {
 	context := fiber.Map{
 		"success": true,
 		"message": "Payment has been made",
 	}
 
-	paymentData := new(PaymentForm)
+	paymentData := new(model.Payment)
 
 	tripay := client.Client{
 		ApiKey:       config.TripayApiKey,
@@ -79,11 +71,11 @@ func HandlePayment(c *fiber.Ctx) error {
 			context["success"] = false
 			context["message"] = "Amount must be greater than 0"
 			return c.Status(fiber.StatusUnauthorized).JSON(context)
-		case paymentData.MacAddress != "" && !helper.ValidateMacAddress(paymentData.MacAddress):
+		case !helper.ValidateMacAddress(paymentData.MacAddress):
 			context["success"] = false
-			context["message"] = "Invalid MAC address format"
+			context["message"] = "Invalid MAC address format or empty"
 			return c.Status(fiber.StatusUnauthorized).JSON(context)
-		case !helper.Contains(allowedMethod, paymentData.Method):
+		case !helper.Contains(allowedMethod, paymentData.PaymentMethod):
 			context["success"] = false
 			context["message"] = "Invalid payment method. Allowed values are: " + strings.Join(allowedMethod, ", ")
 			return c.Status(fiber.StatusUnauthorized).JSON(context)
@@ -99,7 +91,7 @@ func HandlePayment(c *fiber.Ctx) error {
 		})
 
 		bodyReq := client.ClosePaymentBodyRequest{
-			Method:        utils.TRIPAY_CHANNEL(paymentData.Method),
+			Method:        utils.TRIPAY_CHANNEL(paymentData.PaymentMethod),
 			MerchantRef:   merchantReff,
 			Amount:        int(paymentData.Amount),
 			CustomerName:  "Lindinet",
@@ -125,40 +117,37 @@ func HandlePayment(c *fiber.Ctx) error {
 			return c.Status(fiber.StatusInternalServerError).SendString(err.Error())
 		}
 
-		var (
-			checkoutUrl   = tripayClosePayment.Data.CheckoutURL
-			reference     = tripayClosePayment.Data.Reference
-			status        = tripayClosePayment.Data.Status
-			customerName  = tripayClosePayment.Data.CustomerName
-			customerEmail = tripayClosePayment.Data.CustomerEmail
-			customerPhone = tripayClosePayment.Data.CustomerPhone
-			merchantRef   = tripayClosePayment.Data.MerchantRef
-		)
-
-		record := &model.Transaction{
-			Reference:     reference,
-			MerchantRef:   merchantRef,
-			Voucher:       paymentData.Voucher,
-			Profile:       paymentData.Profile,
-			PaymentMethod: paymentData.Method,
-			Amount:        uint(paymentData.Amount),
-			CheckoutURL:   checkoutUrl,
-			Status:        status,
-			Mac:           paymentData.MacAddress,
-			CustomerName:  customerName,
-			CustomerEmail: customerEmail,
-			CustomerPhone: customerPhone,
+		transactionData := &model.Transaction{
+			Reference:      tripayClosePayment.Data.Reference,
+			MerchantRef:    tripayClosePayment.Data.MerchantRef,
+			PaymentName:    tripayClosePayment.Data.PaymentName,
+			PaymentMethod:  tripayClosePayment.Data.PaymentMethod,
+			CustomerName:   tripayClosePayment.Data.CustomerName,
+			CustomerEmail:  tripayClosePayment.Data.CustomerEmail,
+			CustomerPhone:  tripayClosePayment.Data.CustomerPhone,
+			Amount:         tripayClosePayment.Data.Amount,
+			FeeMerchant:    tripayClosePayment.Data.FeeMerchant,
+			FeeCustomer:    tripayClosePayment.Data.FeeCustomer,
+			TotalFee:       tripayClosePayment.Data.TotalFee,
+			AmountReceived: tripayClosePayment.Data.AmountReceived,
+			CheckoutURL:    tripayClosePayment.Data.CheckoutURL,
+			Status:         tripayClosePayment.Data.Status,
+			ExpiredTime:    time.Unix(int64(tripayClosePayment.Data.ExpiredTime), 0),
 		}
 
+		paymentData.TransactionRef = tripayClosePayment.Data.Reference
+
 		if tripayClosePayment.Success {
-			result := database.DBConn.Create(record)
-			if result.Error != nil {
+			result := database.DBConn.Create(transactionData).Error
+			result2 := database.DBConn.Create(paymentData).Error
+			if result != nil || result2 != nil {
+				database.DBConn.Rollback()
 				context["success"] = false
 				context["message"] = "Error in database "
 				return c.Status(fiber.ErrBadRequest.Code).JSON(context)
 			}
 
-			return c.Redirect(checkoutUrl, fiber.StatusFound)
+			return c.Redirect(tripayClosePayment.Data.CheckoutURL, fiber.StatusFound)
 		} else {
 			context["success"] = false
 			context["message"] = "Payment Failed"

@@ -8,6 +8,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/orkymoon/tripay-golang/config"
 	"github.com/orkymoon/tripay-golang/database"
+	"github.com/orkymoon/tripay-golang/database/migrations"
 	"github.com/orkymoon/tripay-golang/router"
 )
 
@@ -16,7 +17,9 @@ func init() {
 		log.Fatal("Error in loading .env file.")
 	}
 	config.LoadEnv()
+
 	database.ConnectDB()
+	migrations.Migration()
 }
 
 func main() {

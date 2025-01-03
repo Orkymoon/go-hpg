@@ -7,11 +7,15 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 )
 
 func ValidateMacAddress(mac string) bool {
+	if mac == "" {
+		return false
+	}
 	re := regexp.MustCompile("^([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$")
 	return re.MatchString(mac)
 }
@@ -51,7 +55,7 @@ func Contains(slice []string, item string) bool {
 	return false
 }
 func GenerateMerchantReference() string {
-	return fmt.Sprintf("MREF-%s", uuid.New().String())
+	return fmt.Sprintf("%d-%s", time.Now().Unix(), uuid.New())
 }
 func CompareSignature(signature1, signature2 string) bool {
 	sign1, _ := hex.DecodeString(signature1)

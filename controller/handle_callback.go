@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"log"
-	"strings"
 
 	"github.com/go-routeros/routeros/v3"
 	"github.com/gofiber/fiber/v2"
@@ -89,10 +88,10 @@ func HandleCallback(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(context)
 	}
 
-	var record model.Transaction
+	var record model.Payment
 
 	if callback.IsClosedPayment == 1 {
-		result := database.DBConn.Where("status = ? AND merchant_ref = ? AND reference = ?", "UNPAID", callback.MerchantRef, callback.Reference).Limit(1).First(&record)
+		result := database.DBConn.Preload("Transaction", "status = ? AND merchant_ref = ?", "UNPAID", callback.MerchantRef).Where("transaction_ref = ?", callback.Reference).Limit(1).First(&record)
 		if result.Error != nil {
 			if result.Error == gorm.ErrRecordNotFound {
 				context["success"] = false
@@ -116,9 +115,7 @@ func HandleCallback(c *fiber.Ctx) error {
 			MerchanReff:  callback.MerchantRef,
 		})
 
-		status := strings.ToUpper(callback.Status)
-
-		switch status {
+		switch callback.Status {
 		// handle status paid
 		case "PAID":
 			cmd := []string{
@@ -129,15 +126,13 @@ func HandleCallback(c *fiber.Ctx) error {
 				"=password=" + record.Voucher,
 				"=comment=" + "vc-tripay",
 			}
-			h, err := r.RunArgs(cmd)
+			_, err := r.RunArgs(cmd)
 			if err != nil {
 				context["success"] = false
-				context["message"] = "Invalid RouterOS command"
+				context["message"] = "Invalid RouterOS command :" + err.Error()
 				return c.Status(fiber.StatusBadRequest).JSON(context)
 			}
-			log.Println(h)
-
-			result := database.DBConn.Model(record).Where("merchant_ref = ?", record.MerchantRef).Update("status", "PAID")
+			result := database.DBConn.Model(&model.Transaction{}).Where("merchant_ref = ?", record.Transaction.MerchantRef).Update("status", "PAID")
 			if result.Error != nil {
 				log.Println(result.Error)
 				context["success"] = false
@@ -146,7 +141,7 @@ func HandleCallback(c *fiber.Ctx) error {
 			}
 
 		case "EXPIRED":
-			result := database.DBConn.Model(record).Where("merchant_ref = ?", record.MerchantRef).Update("status", "EXPIRED")
+			result := database.DBConn.Model(record).Where("merchant_ref = ?", record.Transaction.MerchantRef).Update("status", "EXPIRED")
 			if result.Error != nil {
 				log.Println(result.Error)
 				context["success"] = false
@@ -154,7 +149,7 @@ func HandleCallback(c *fiber.Ctx) error {
 				return c.Status(fiber.ErrBadRequest.Code).JSON(context)
 			}
 		case "FAILED":
-			result := database.DBConn.Model(record).Where("merchant_ref = ?", record.MerchantRef).Update("status", "FAILED")
+			result := database.DBConn.Model(record).Where("merchant_ref = ?", record.Transaction.MerchantRef).Update("status", "FAILED")
 			if result.Error != nil {
 				log.Println(result.Error)
 				context["success"] = false
