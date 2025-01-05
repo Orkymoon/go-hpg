@@ -46,7 +46,7 @@ type CallbackStruct struct {
 	Note              *string `json:"note"`
 }
 
-func PaymentCreate(c *fiber.Ctx) error {
+func CreatePayment(c *fiber.Ctx) error {
 
 	received := new(PaymentPost)
 	if err := c.BodyParser(received); err != nil {
@@ -182,15 +182,15 @@ func PaymentCreate(c *fiber.Ctx) error {
 	return c.Redirect(tripayClosePayment.Data.CheckoutURL, fiber.StatusFound)
 }
 
-func PaymentRead(c *fiber.Ctx) error {
+func GetPayment(c *fiber.Ctx) error {
 	return c.JSON("Under construction")
 }
 
-func PaymentUpdate(c *fiber.Ctx) error {
+func UpdatePayment(c *fiber.Ctx) error {
 	return c.JSON("Under construction")
 }
 
-func PaymentDelete(c *fiber.Ctx) error {
+func DeletePayment(c *fiber.Ctx) error {
 	return c.JSON("Under construction")
 }
 
