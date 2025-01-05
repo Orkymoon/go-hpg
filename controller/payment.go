@@ -87,7 +87,7 @@ func PaymentCreate(c *fiber.Ctx) error {
 		CustomerEmail: received.CustomerEmail,
 		CustomerPhone: received.CustomerPhone,
 		ReturnURL:     "http://" + received.Hostname + "/login?dst=&username=" + received.Voucher + "&password=" + received.Voucher,
-		ExpiredTime:   client.SetTripayExpiredTime(8), // 8 hours expiration
+		ExpiredTime:   client.SetTripayExpiredTime(config.TripayExpiredTime), // 8 hours expiration
 		Signature:     tripay.GetSignature(),
 		OrderItems: []client.OrderItemClosePaymentRequest{
 			{

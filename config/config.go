@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"strconv"
 
 	"github.com/orkymoon/tripay-golang/helper"
 )
@@ -17,7 +18,7 @@ var (
 	TripayApiKey       string
 	TripayMerchantCode string
 	TripayMode         string
-	MikrotikDnsHotspot string
+	TripayExpiredTime  int
 	MikrotikUsername   string
 	MikrotikPassword   string
 	MikrotikIpAddress  string
@@ -41,6 +42,16 @@ func (c config) ifEmpty(env string, defaultValue string) string {
 	return defaultValue
 }
 
+func (c config) toInt(env string, defaultValue int) int {
+	if env != "" {
+		value, err := strconv.Atoi(env)
+		if err == nil {
+			return value
+		}
+	}
+	return defaultValue
+}
+
 var c = config{}
 
 func LoadEnv() {
@@ -59,9 +70,9 @@ func LoadEnv() {
 	TripayApiKey = c.Get("TRIPAY_API_KEY")
 	TripayMerchantCode = c.Get("TRIPAY_MERCHANT_CODE")
 	TripayMode = c.Get("TRIPAY_MODE")
+	TripayExpiredTime = c.toInt(c.Get("TRIPAY_EXPIRED_TIME"), 24)
 
 	// MIKROTIK
-	MikrotikDnsHotspot = c.ifEmpty(c.Get("MIKROTIK_DNS"), c.Get("MIKROTIK_IP"))
 	MikrotikUsername = c.ifEmpty(c.Get("MIKROTIK_USER"), "admin")
 	MikrotikPassword = c.Get("MIKROTIK_PASSWORD")
 	MikrotikIpAddress = c.ifEmpty(c.Get("MIKROTIK_IP"), "192.168.88.1")
