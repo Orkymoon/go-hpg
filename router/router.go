@@ -9,6 +9,6 @@ func SetupRoutes(app *fiber.App) {
 
 	api := app.Group("/api")
 
-	api.Post("/pay", controller.HandlePayment)
-	api.Post("/callback", controller.HandleCallback)
+	api.Post("/payment", controller.PaymentCreate)
+	api.Post("/payment/callback", controller.PaymentCallback)
 }
