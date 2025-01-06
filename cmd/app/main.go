@@ -6,10 +6,10 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/joho/godotenv"
-	"github.com/orkymoon/tripay-golang/config"
-	"github.com/orkymoon/tripay-golang/database"
-	"github.com/orkymoon/tripay-golang/database/migrations"
-	"github.com/orkymoon/tripay-golang/router"
+	"github.com/orkymoon/tripay-golang/internal/config"
+	"github.com/orkymoon/tripay-golang/internal/database"
+	"github.com/orkymoon/tripay-golang/internal/database/migrations"
+	"github.com/orkymoon/tripay-golang/internal/routes"
 )
 
 func init() {
@@ -35,7 +35,7 @@ func main() {
 	app := fiber.New()
 	app.Use(logger.New())
 
-	router.SetupRoutes(app)
+	routes.SetupRoutes(app)
 
 	log.Printf("running on http://localhost%v", config.AppPort)
 	app.Listen(config.AppPort)

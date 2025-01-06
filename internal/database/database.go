@@ -3,7 +3,7 @@ package database
 import (
 	"log"
 
-	"github.com/orkymoon/tripay-golang/config"
+	"github.com/orkymoon/tripay-golang/internal/config"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"

@@ -4,7 +4,7 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/orkymoon/tripay-golang/helper"
+	"github.com/orkymoon/tripay-golang/internal/helper"
 )
 
 var (
